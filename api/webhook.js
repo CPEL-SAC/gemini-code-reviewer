@@ -317,7 +317,7 @@ module.exports = async (req, res) => {
         '  - Una descripción clara y concisa del problema.',
         '  - Una sugerencia de cómo solucionarlo.',
         '  - La ruta del archivo y el número de línea específico.',
-        '  - Una etiqueta de severidad: `[Crítico]`, `[Alto]`, `[Medio]` o `[Bajo]`.,
+        '  - Una etiqueta de severidad: `[Crítico]`, `[Alto]`, `[Medio]` o `[Bajo]`.',
         '- Si no encuentras problemas, responde con: "🧅 La Cebolla dice ... ✅ ¡Se ve bien! No se encontraron problemas críticos."',
         '',
         '---',
