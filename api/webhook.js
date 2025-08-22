@@ -51,18 +51,18 @@ module.exports = async (req, res) => {
     }
 
     // 4. Construir el prompt y llamar a la API de Gemini.
-    const prompt = `
-      Eres un revisor de código experto de Google. Tu misión es analizar el siguiente 'git diff' y proporcionar comentarios constructivos en español.
-
-      Busca posibles errores, código complejo, malas prácticas, o sugerencias de mejora en claridad y eficiencia. No comentes sobre cosas triviales como espacios en blanco.
-
-      Proporciona tu feedback en formato Markdown. Si no encuentras nada que valga la pena mencionar, responde con "¡Buen trabajo! No tengo sugerencias por ahora.".
-
-      Aquí está el diff:
-      ```diff
-      ${diff}
-      ```
-    `;
+    const prompt = [
+      "Eres un revisor de código experto de Google. Tu misión es analizar el siguiente 'git diff' y proporcionar comentarios constructivos en español.",
+      "",
+      "Busca posibles errores, código complejo, malas prácticas, o sugerencias de mejora en claridad y eficiencia. No comentes sobre cosas triviales como espacios en blanco.",
+      "",
+      "Proporciona tu feedback en formato Markdown. Si no encuentras nada que valga la pena mencionar, responde con \"¡Buen trabajo! No tengo sugerencias por ahora.\".",
+      "",
+      "Aquí está el diff:",
+      "```diff",
+      diff,
+      "```"
+    ].join('\n');
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
     const geminiResponse = await axios.post(geminiUrl, { contents: [{ parts: [{ text: prompt }] }] });
