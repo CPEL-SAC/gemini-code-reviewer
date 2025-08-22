@@ -289,30 +289,43 @@ module.exports = async (req, res) => {
     logger.info("Calling Gemini API for code review");
     let reviewComment;
     try {
+      const prTitle = req.body.pull_request.title;
+      const prBody = req.body.pull_request.body;
+
       const prompt = [
-        "Eres un revisor de código experto enfocado en seguridad y calidad. Analiza este diff buscando ÚNICAMENTE:",
-        "",
-        "🔍 **ERRORES CRÍTICOS:**",
-        "- Errores de sintaxis o lógica",
-        "- Vulnerabilidades de seguridad (SQL injection, XSS, etc.)",
-        "- Memory leaks o problemas de rendimiento",
-        "- Código que puede causar excepciones no manejadas",
-        "- Lógica de negocio incorrecta",
-        "",
-        "⚠️ **RIESGOS:**",
-        "- Exposición de datos sensibles",
-        "- Falta de validación de entrada",
-        "- Race conditions o problemas de concurrencia",
-        "",
-        "📝 **FORMATO DE RESPUESTA:**",
-        "- Inicia SIEMPRE con: \"🐰 **Mensaje del Conejo:**\"",
-        "- Si encuentras problemas: lista cada uno en 1-2 líneas máximo",
-        "- Si todo está bien: \"🐰 **Mensaje del Conejo:** ¡Código limpio! No detecté problemas críticos.\"",
-        "- Sé EXTREMADAMENTE conciso y directo",
-        "",
-        "```diff",
+        '**Actúa como un revisor de código experto.** Tu tarea es analizar un pull request basándote en su título, descripción y cambios de código (diff).',
+        '',
+        '**Contexto del Pull Request:**',
+        `- **Título:** ${prTitle}`,
+        `- **Descripción:**`,
+        `${prBody || 'No se proporcionó descripción.'}`,
+        '',
+        '**Enfoque de la Revisión:**',
+        'Analiza el siguiente diff en busca de posibles problemas. Concéntrate en:',
+        '- **Seguridad:** Vulnerabilidades (por ejemplo, XSS, Inyección SQL), manejo inseguro de secretos.',
+        '- **Bugs:** Errores de lógica, errores por un paso, condiciones de carrera o posibles bloqueos.',
+        '- **Mejores Prácticas:** Desviaciones de las mejores prácticas comunes o modismos del lenguaje.',
+        '- **Claridad y Mantenibilidad:** Código difícil de entender, depurar o ampliar.',
+        '- **Rendimiento:** Código ineficiente o posibles cuellos de botella.',
+        '',
+        '**Formato de Respuesta:**',
+        '- Utiliza Markdown para el formato.',
+        '- Comienza SIEMPRE con: "🧅 La Cebolla dice ..."',
+        '- Continúa con un breve resumen de los cambios en una frase.',
+        '- Si encuentras problemas, crea una sección "Comentarios de Revisión".',
+        '- Para cada problema, proporciona:',
+        '  - Una descripción clara y concisa del problema.',
+        '  - Una sugerencia de cómo solucionarlo.',
+        '  - La ruta del archivo y el número de línea específico.',
+        '  - Una etiqueta de severidad: `[Crítico]`, `[Alto]`, `[Medio]` o `[Bajo]`.,
+        '- Si no encuentras problemas, responde con: "🧅 La Cebolla dice ... ✅ ¡Se ve bien! No se encontraron problemas críticos."',
+        '',
+        '---',
+        '',
+        '**Diff de Código a Revisar:**',
+        '```diff',
         diff,
-        "```"
+        '```'
       ].join('\n');
       
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
@@ -357,7 +370,7 @@ module.exports = async (req, res) => {
       
       if (!reviewComment || reviewComment.trim() === "") {
         logger.warn("Empty review comment received from Gemini");
-        reviewComment = "🐰 **Mensaje del Conejo:** ¡Código limpio! No detecté problemas críticos.";
+        reviewComment = "🧅 La Cebolla dice ... ✅ ¡Se ve bien! No se encontraron problemas críticos.";
       }
       
       logger.info("Review generated successfully", { reviewLength: reviewComment.length });
