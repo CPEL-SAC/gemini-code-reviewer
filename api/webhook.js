@@ -290,13 +290,26 @@ module.exports = async (req, res) => {
     let reviewComment;
     try {
       const prompt = [
-        "Eres un revisor de código experto de Google. Tu misión es analizar el siguiente 'git diff' y proporcionar comentarios constructivos en español.",
+        "Eres un revisor de código experto enfocado en seguridad y calidad. Analiza este diff buscando ÚNICAMENTE:",
         "",
-        "Busca posibles errores, código complejo, malas prácticas, o sugerencias de mejora en claridad y eficiencia. No comentes sobre cosas triviales como espacios en blanco.",
+        "🔍 **ERRORES CRÍTICOS:**",
+        "- Errores de sintaxis o lógica",
+        "- Vulnerabilidades de seguridad (SQL injection, XSS, etc.)",
+        "- Memory leaks o problemas de rendimiento",
+        "- Código que puede causar excepciones no manejadas",
+        "- Lógica de negocio incorrecta",
         "",
-        "Proporciona tu feedback en formato Markdown. Si no encuentras nada que valga la pena mencionar, responde con \"¡Buen trabajo! No tengo sugerencias por ahora.\".",
+        "⚠️ **RIESGOS:**",
+        "- Exposición de datos sensibles",
+        "- Falta de validación de entrada",
+        "- Race conditions o problemas de concurrencia",
         "",
-        "Aquí está el diff:",
+        "📝 **FORMATO DE RESPUESTA:**",
+        "- Inicia SIEMPRE con: \"🐰 **Mensaje del Conejo:**\"",
+        "- Si encuentras problemas: lista cada uno en 1-2 líneas máximo",
+        "- Si todo está bien: \"🐰 **Mensaje del Conejo:** ¡Código limpio! No detecté problemas críticos.\"",
+        "- Sé EXTREMADAMENTE conciso y directo",
+        "",
         "```diff",
         diff,
         "```"
@@ -344,7 +357,7 @@ module.exports = async (req, res) => {
       
       if (!reviewComment || reviewComment.trim() === "") {
         logger.warn("Empty review comment received from Gemini");
-        reviewComment = "¡Buen trabajo! No tengo sugerencias específicas para este cambio.";
+        reviewComment = "🐰 **Mensaje del Conejo:** ¡Código limpio! No detecté problemas críticos.";
       }
       
       logger.info("Review generated successfully", { reviewLength: reviewComment.length });
