@@ -16,6 +16,6 @@
   "license": "ISC",
   "dependencies": {
     "axios": "*",
-    "@octokit/rest": "*"
+    "@octokit/rest": "^19.0.0"
   }
 }

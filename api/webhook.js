@@ -1,5 +1,9 @@
+const { Octokit } = require("@octokit/rest");
 const axios = require("axios");
 const crypto = require("crypto");
+
+// Inicializa el cliente de la API de GitHub con un token de acceso personal.
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
 module.exports = async (req, res) => {
   console.log("--- FUNCTION STARTED ---");
@@ -7,11 +11,7 @@ module.exports = async (req, res) => {
 
   try {
     console.log("--- TRY BLOCK ENTERED ---");
-
-    // Importa dinámicamente Octokit y lo inicializa.
-    const { Octokit } = await import("@octokit/rest");
-    const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-    console.log("Octokit initialized.");
+    console.log("Octokit is pre-initialized.");
 
     // 1. Validar que la petición viene de GitHub usando el secreto del webhook.
     console.log("Validating signature...");
