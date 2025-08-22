@@ -49,6 +49,8 @@ module.exports = async (req, res) => {
   baseLogger.info("Function execution started.");
   res.status(202).send("Accepted");
 
+  baseLogger.info("Checking environment variables.", { GITHUB_TOKEN_loaded: !!process.env.GITHUB_TOKEN, GITHUB_TOKEN_length: process.env.GITHUB_TOKEN?.length || 0 });
+
   let logger = baseLogger;
 
   try {
