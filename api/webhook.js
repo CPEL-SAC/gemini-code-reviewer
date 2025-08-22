@@ -82,15 +82,24 @@ module.exports = async (req, res) => {
     let compareResponse;
     try {
       logger.info("Comparing commits to get diff.", { base: pr.base.sha, head: pr.head.sha });
-      compareResponse = await octokit.repos.compareCommits({
-        owner,
-        repo,
-        base: pr.base.sha,
-        head: pr.head.sha,
-      });
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("GitHub API call timed out after 9 seconds.")), 9000)
+      );
+
+      compareResponse = await Promise.race([
+        octokit.repos.compareCommits({
+          owner,
+          repo,
+          base: pr.base.sha,
+          head: pr.head.sha,
+        }),
+        timeoutPromise
+      ]);
+
       logger.info("Successfully compared commits.");
     } catch (commitError) {
-      logger.error("Failed to compare commits. This might be a GITHUB_TOKEN permissions issue.", commitError);
+      logger.error("Failed to compare commits. This could be a timeout or a GITHUB_TOKEN permissions issue.", commitError);
       return;
     }
 
