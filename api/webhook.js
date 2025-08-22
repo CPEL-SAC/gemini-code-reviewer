@@ -1,9 +1,5 @@
-const { Octokit } = require("@octokit/rest");
 const axios = require("axios");
 const crypto = require("crypto");
-
-// Inicializa el cliente de la API de GitHub con un token de acceso personal.
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
 /**
  * El handler principal de la función serverless.
@@ -15,6 +11,10 @@ module.exports = async (req, res) => {
   res.status(202).send("Accepted");
 
   try {
+    // Importa dinámicamente Octokit y lo inicializa.
+    const { Octokit } = await import("@octokit/rest");
+    const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
     // 1. Validar que la petición viene de GitHub usando el secreto del webhook.
     const signature = req.headers["x-hub-signature-256"];
     const expectedSignature = "sha256=" + crypto.createHmac("sha256", process.env.WEBHOOK_SECRET).update(JSON.stringify(req.body)).digest("hex");
