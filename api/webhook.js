@@ -2,7 +2,6 @@ const { Octokit } = require("@octokit/rest");
 const axios = require("axios");
 const crypto = require("crypto");
 
-// Inicializa el cliente de la API de GitHub con un token de acceso personal.
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
 module.exports = async (req, res) => {
@@ -13,7 +12,6 @@ module.exports = async (req, res) => {
     console.log("--- TRY BLOCK ENTERED ---");
     console.log("Octokit is pre-initialized.");
 
-    // 1. Validar que la petición viene de GitHub usando el secreto del webhook.
     console.log("Validating signature...");
     const signature = req.headers["x-hub-signature-256"];
     const expectedSignature = "sha256=" + crypto.createHmac("sha256", process.env.WEBHOOK_SECRET).update(JSON.stringify(req.body)).digest("hex");
@@ -24,7 +22,6 @@ module.exports = async (req, res) => {
     }
     console.log("Signature validation passed.");
 
-    // 2. Asegurarse de que es un evento de PR con acción 'opened' o 'synchronize'.
     console.log("Validating event type...");
     if (req.headers["x-github-event"] !== "pull_request" || !["opened", "synchronize"].includes(req.body.action)) {
       console.log(`--- IGNORING EVENT: ${req.headers["x-github-event"]} with action: ${req.body.action} ---`);
@@ -37,15 +34,30 @@ module.exports = async (req, res) => {
     const repo = req.body.repository.name;
     console.log(`Processing PR #${pr.number} in ${owner}/${repo}`);
 
-    // 3. Obtener el diff del PR usando la API de GitHub.
-    console.log("Comparing commits to get diff...");
-    const compareResponse = await octokit.repos.compareCommits({
-      owner,
-      repo,
-      base: pr.base.sha,
-      head: pr.head.sha,
-    });
-    console.log("Diff obtained.");
+    let compareResponse;
+    try {
+        console.log("Attempting to call octokit.repos.compareCommits...");
+        compareResponse = await octokit.repos.compareCommits({
+          owner,
+          repo,
+          base: pr.base.sha,
+          head: pr.head.sha,
+        });
+        console.log("octokit.repos.compareCommits call was successful.");
+    } catch (commitError) {
+        console.error("--- ERROR IN compareCommits CALL ---");
+        console.error("Failed to compare commits. This is likely a GITHUB_TOKEN permissions issue.");
+        console.error("Commit Error Name:", commitError.name);
+        console.error("Commit Error Message:", commitError.message);
+        console.error("Commit Error Stack:", commitError.stack);
+        if (commitError.response) {
+            console.error("--- API RESPONSE ERROR DETAILS (from commitError) ---");
+            console.error("Response Status:", commitError.response.status);
+            console.error("Response Data:", JSON.stringify(commitError.response.data, null, 2));
+        }
+        console.error("--- END OF compareCommits ERROR ---");
+        return;
+    }
 
     const diff = compareResponse.data.files.map(file => file.patch || '').join('\n');
 
@@ -54,7 +66,6 @@ module.exports = async (req, res) => {
       return;
     }
 
-    // 4. Construir el prompt y llamar a la API de Gemini.
     console.log("Calling Gemini API...");
     const prompt = [
       "Eres un revisor de código experto de Google. Tu misión es analizar el siguiente 'git diff' y proporcionar comentarios constructivos en español.",
@@ -75,7 +86,6 @@ module.exports = async (req, res) => {
     const reviewComment = geminiResponse.data.candidates[0].content.parts[0].text;
     console.log("Review received from Gemini.");
 
-    // 5. Publicar el comentario de vuelta en el Pull Request.
     console.log("Posting comment to GitHub...");
     await octokit.issues.createComment({
       owner,
@@ -87,18 +97,16 @@ module.exports = async (req, res) => {
     console.log(`--- SUCCESS: Review comment posted successfully to PR #${pr.number} in ${owner}/${repo}. ---`);
 
   } catch (error) {
-    console.error("--- CATCH BLOCK ERROR ---");
+    console.error("--- CATCH BLOCK ERROR (OUTER) ---");
     console.error("An error occurred during webhook processing.");
     console.error("Error Name:", error.name);
     console.error("Error Message:", error.message);
     console.error("Error Stack:", error.stack);
-
     if (error.response) {
-      console.error("--- API RESPONSE ERROR DETAILS ---");
+      console.error("--- API RESPONSE ERROR DETAILS (from outer catch) ---");
       console.error("Response Status:", error.response.status);
-      console.error("Response Headers:", JSON.stringify(error.response.headers, null, 2));
       console.error("Response Data:", JSON.stringify(error.response.data, null, 2));
     }
-    console.error("--- END OF ERROR LOG ---");
+    console.error("--- END OF OUTER ERROR LOG ---");
   }
 };
