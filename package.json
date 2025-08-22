@@ -1,0 +1,21 @@
+{
+  "name": "gemini-code-reviewer",
+  "version": "1.0.0",
+  "description": "Este proyecto es una función serverless para Vercel que revisa automáticamente los Pull Requests de GitHub usando la API de Gemini.",
+  "main": "api/webhook.js",
+  "scripts": {
+    "test": "echo "Error: no test specified" && exit 1"
+  },
+  "keywords": [
+    "github",
+    "gemini",
+    "code-reviewer",
+    "vercel"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "*",
+    "@octokit/rest": "*"
+  }
+}
