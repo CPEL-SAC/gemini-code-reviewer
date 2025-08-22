@@ -53,7 +53,7 @@ module.exports = async (req, res) => {
 
   try {
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-    logger.info("Octokit initialized successfully.");
+    logger.info("Octokit initialized successfully.")
 
     const signature = req.headers["x-hub-signature-256"];
     const expectedSignature = "sha256=" + crypto.createHmac("sha256", process.env.WEBHOOK_SECRET).update(JSON.stringify(req.body)).digest("hex");
