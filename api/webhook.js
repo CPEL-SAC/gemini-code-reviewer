@@ -53,7 +53,7 @@ module.exports = async (req, res) => {
 
   try {
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-    logger.info("Octokit initialized successfully.")
+    logger.info("Octokit initialized successfully.");
 
     const signature = req.headers["x-hub-signature-256"];
     const expectedSignature = "sha256=" + crypto.createHmac("sha256", process.env.WEBHOOK_SECRET).update(JSON.stringify(req.body)).digest("hex");
@@ -82,37 +82,38 @@ module.exports = async (req, res) => {
     logger = createLogger({ repository: `${owner}/${repo}`, pr: prNumber });
     logger.info("Processing pull request.");
 
-    let compareResponse;
+    let diff;
     try {
-      logger.info("Comparing commits to get diff.", { base: pr.base.sha, head: pr.head.sha });
+      logger.info("Comparing commits to get diff using direct axios call.", { base: pr.base.sha, head: pr.head.sha });
 
+      const compareUrl = `https://api.github.com/repos/${owner}/${repo}/compare/${pr.base.sha}...${pr.head.sha}`;
+      
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("GitHub API call timed out after 9 seconds.")), 9000)
+        setTimeout(() => reject(new Error("GitHub API call (axios) timed out after 9 seconds.")), 9000)
       );
 
-      compareResponse = await Promise.race([
-        octokit.repos.compareCommits({
-          owner,
-          repo,
-          base: pr.base.sha,
-          head: pr.head.sha,
-        }),
-        timeoutPromise
-      ]);
+      const axiosPromise = axios.get(compareUrl, {
+        headers: {
+          'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3.diff' // Requesting diff format directly
+        }
+      });
 
-      logger.info("Successfully compared commits.");
+      const githubResponse = await Promise.race([axiosPromise, timeoutPromise]);
+      
+      diff = githubResponse.data;
+
+      logger.info("Successfully compared commits using direct axios call.", { responseLength: diff.length });
     } catch (commitError) {
-      logger.error("Failed to compare commits. This could be a timeout or a GITHUB_TOKEN permissions issue.", commitError);
+      logger.error("Failed to compare commits using direct axios call.", commitError);
       return;
     }
-
-    const diff = compareResponse.data.files.map(file => file.patch || '').join('\n');
 
     if (!diff || diff.trim() === "") {
       logger.info("No changes to review, exiting.");
       return;
     }
-    logger.info(`Diff contains ${compareResponse.data.files.length} file(s).`);
+    logger.info(`Diff contains ${diff.length} characters.`);
 
     logger.info("Calling Gemini API for code review.");
     const prompt = [
@@ -134,7 +135,7 @@ module.exports = async (req, res) => {
     const reviewComment = geminiResponse.data.candidates[0].content.parts[0].text;
     logger.info("Review received from Gemini API.", { reviewLength: reviewComment.length });
 
-    logger.info("Posting review comment to GitHub.");
+    logger.info("Posting comment to GitHub.");
     await octokit.issues.createComment({
       owner,
       repo,
