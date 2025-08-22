@@ -88,9 +88,17 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     console.error("--- CATCH BLOCK ERROR ---");
-    console.error("Error processing webhook:", error.message);
+    console.error("An error occurred during webhook processing.");
+    console.error("Error Name:", error.name);
+    console.error("Error Message:", error.message);
+    console.error("Error Stack:", error.stack);
+
     if (error.response) {
-      console.error("Error details:", error.response.data);
+      console.error("--- API RESPONSE ERROR DETAILS ---");
+      console.error("Response Status:", error.response.status);
+      console.error("Response Headers:", JSON.stringify(error.response.headers, null, 2));
+      console.error("Response Data:", JSON.stringify(error.response.data, null, 2));
     }
+    console.error("--- END OF ERROR LOG ---");
   }
 };
