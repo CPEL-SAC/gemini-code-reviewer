@@ -1,0 +1,24 @@
+name: Back-merge to Develop
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+
+jobs:
+  backmerge:
+    if: github.event.pull_request.merged == true
+    uses: CPEL-SAC/workflow-mgmt/.github/workflows/backmerge.yml@main
+    with:
+      target_branch: develop
+      validate_syntax: true
+      syntax_pattern: '*.js'
+      src_path: src
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_branch: ${{ github.event.pull_request.head.ref }}
+      pr_url: ${{ github.event.pull_request.html_url }}
+    secrets:
+      repo_token: ${{ secrets.DEVOPS_GITHUB_TOKEN }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
